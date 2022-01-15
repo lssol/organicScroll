@@ -1,8 +1,5 @@
-let f = 0.25
-if(navigator.userAgent.toLowerCase().indexOf('firefox') > -1){
-    f = 0.8
-}
-const k = 0.08
+let f = 0.30
+const k = 0.065
 const m = 10
 
 // f : millisecond -> velocity
@@ -29,10 +26,12 @@ const applyMovementFunction = (v) => {
     }
 }
 
-const applyForce = (v0, dir) => {
-    let f1 = dir * f
+const applyForce = (v0, dir, multiplier) => {
+    let f1 = dir * (f * multiplier)
+    console.log("Applying force ", f1)
     return t => (v0 - (f1/k)) * (Math.exp(-(k/m) * t)) + f1/k
 }
+
 const stopForce = (v0) => {
     return t => v0 * Math.exp(-t * (k/m))
 }
@@ -40,17 +39,12 @@ const stopForce = (v0) => {
 const Mover = () => {
     let currentMovement = null
     let v0 = 0
-    let lastDir = 0
-    const move = dir => {
+    const move = (dir, multiplier) => {
         if (currentMovement) {
             v0 = currentMovement.cancel()
             currentMovement = null
-            // if (lastDir != dir) {
-            //     lastDir = dir
-            //     return
-            // }
         }
-        let v = applyForce(v0, dir)
+        let v = applyForce(v0, dir, multiplier)
         currentMovement = applyMovementFunction(v)
         lastDir = dir
     }
@@ -68,22 +62,42 @@ const Mover = () => {
     }
 }
 
+const dir = { down: 1, up: -1 }
+const speed = { normal: 1, double: 4 }
+const modifiers = { alt: "Alt", control: "Control", shift: "Shift"}
+
 const mover = Mover()
-const up = () => mover.move(-1)
-const down = () => mover.move(1)
-const release = mover.release
-const press = {
-    'KeyJ': down,
-    'KeyK': up,
+
+const actions = {
+    'Shift+KeyJ': () => mover.move(dir.down, speed.double),
+    'Shift+KeyK': () => mover.move(dir.up, speed.double),
+    'KeyJ': () => mover.move(dir.down, speed.normal),
+    'KeyK': () => mover.move(dir.up, speed.normal),
+
+    'Shift+ArrowDown': () => mover.move(dir.down, speed.double),
+    'Shift+ArrowUp': () => mover.move(dir.up, speed.double),
+    'ArrowDown': () => mover.move(dir.down, speed.normal),
+    'ArrowUp': () => mover.move(dir.up, speed.normal),
 }
 
+const release = mover.release
+const getModifier = e => {
+    if (e.ctrlKey) return 'Ctrl'
+    if (e.shiftKey) return 'Shift'
+    if (e.altKey) return 'Alt'
+    else return false
+}
 window.onload = () => {
     document.addEventListener("keydown", e => {
-        if (press.hasOwnProperty(e.code))
-            press[e.code]()
+        const mod = getModifier(e)
+        const key = (mod ? mod + '+' : '') + e.code
+        if (actions.hasOwnProperty(key)) {
+            console.log('Pressed on ', key)
+            actions[key]()
+        }
     })
     document.addEventListener('keyup', e => {
-        if (press.hasOwnProperty(e.code))
+        if (actions.hasOwnProperty(e.code))
             release()
     })
 }
