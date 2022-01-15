@@ -87,8 +87,15 @@ const getModifier = e => {
     if (e.altKey) return 'Alt'
     else return false
 }
+const isEditableField = (evt) => {
+    const target = evt.target || evt.srcElement;
+    return (/INPUT|TEXTAREA|SELECT|BUTTON/.test(target.nodeName))
+}
+
 window.onload = () => {
     document.addEventListener("keydown", e => {
+        if (isEditableField(e))
+            return
         const mod = getModifier(e)
         const key = (mod ? mod + '+' : '') + e.code
         if (actions.hasOwnProperty(key)) {
@@ -97,6 +104,8 @@ window.onload = () => {
         }
     })
     document.addEventListener('keyup', e => {
+        if (isEditableField(e))
+            return
         if (actions.hasOwnProperty(e.code))
             release()
     })
